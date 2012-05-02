@@ -8,19 +8,16 @@ class << MockSyslog
 
   @line = nil
 
-  Logger::Syslog::LOGGER_MAP.values.uniq.each do |level|
-    eval <<-EOM
-      def #{level}(message)
-        @line = "#{level.to_s.upcase} - \#{message}"
-      end
-    EOM
-  end
-
   attr_reader :line
   attr_reader :program_name
 
   def open(program_name)
     @program_name = program_name
+  end
+
+  def log(priority, message)
+    priority_name = Logger::Syslog::LOGGER_MAP.to_a.find { |k,v| (v & priority) == v }[0]
+    @line = "#{priority_name.to_s.upcase} - #{message}"
   end
 
   def reset
@@ -466,7 +463,6 @@ class TestSyslogLogger < TestLogger
       @line = line
       return unless /\A(\w+) - (.*)\Z/ =~ @line
       severity, @msg = $1, $2
-      severity = Logger::Syslog::LOGGER_MAP.invert[severity.downcase.intern]
       @severity = severity.to_s.upcase
       @severity = 'ANY' if @severity == 'UNKNOWN'
     end
